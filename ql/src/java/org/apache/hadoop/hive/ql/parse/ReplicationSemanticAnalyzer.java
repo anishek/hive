@@ -50,6 +50,8 @@ import org.apache.hadoop.hive.ql.hooks.ReadEntity;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.Partition;
 import org.apache.hadoop.hive.ql.metadata.Table;
+import org.apache.hadoop.hive.ql.parse.repl.dump.FunctionSerializer;
+import org.apache.hadoop.hive.ql.parse.repl.dump.JsonWriter;
 import org.apache.hadoop.hive.ql.parse.repl.events.EventHandler;
 import org.apache.hadoop.hive.ql.parse.repl.events.EventHandlerFactory;
 import org.apache.hadoop.hive.ql.plan.AlterDatabaseDesc;
@@ -339,6 +341,7 @@ public class ReplicationSemanticAnalyzer extends BaseSemanticAnalyzer {
         for (String dbName : matchesDb(dbNameOrPattern)) {
           LOG.debug("ReplicationSemanticAnalyzer: analyzeReplDump dumping db: " + dbName);
           Path dbRoot = dumpDbMetadata(dbName, dumpRoot);
+          dumpFunctionMetadata(dbName, dumpRoot);
           for (String tblName : matchesTbl(dbName, tblNameOrPattern)) {
             LOG.debug("ReplicationSemanticAnalyzer: analyzeReplDump dumping table: " + tblName
                 + " to db root " + dbRoot.toUri());
@@ -429,7 +432,7 @@ public class ReplicationSemanticAnalyzer extends BaseSemanticAnalyzer {
     }
   }
 
-  private void dumpEvent2(NotificationEvent ev, Path evRoot, Path cmRoot) throws Exception {
+  private void dumpEventV2(NotificationEvent ev, Path evRoot, Path cmRoot) throws Exception {
     EventHandler.Context context = new EventHandler.Context(
         evRoot,
         cmRoot,
@@ -741,6 +744,30 @@ public class ReplicationSemanticAnalyzer extends BaseSemanticAnalyzer {
       throw new SemanticException(e);
     }
     return dbRoot;
+  }
+
+  private static final String FUNCTIONS_ROOT_DIR_NAME = "_functions";
+  private static final String FUNCTION_METADATA_DIR_NAME = "_metadata";
+
+  private Path dumpFunctionMetadata(String dbName, Path dumpRoot) throws SemanticException {
+    Path functionsRoot = new Path(new Path(dumpRoot, dbName), FUNCTIONS_ROOT_DIR_NAME);
+    try {
+      // TODO : This should ideally return the Function Objects and not Strings(function names) that should be done by the caller, Look at this separately.
+      List<String> functionNames = db.getFunctions(dbName, "*");
+      for (String functionName : functionNames) {
+        org.apache.hadoop.hive.metastore.api.Function function =
+            db.getFunction(dbName, functionName);
+        Path functionMetadataRoot =
+            new Path(new Path(functionsRoot, functionName), FUNCTION_METADATA_DIR_NAME);
+        try (JsonWriter jsonWriter = new JsonWriter(functionMetadataRoot.getFileSystem(conf),
+            functionMetadataRoot)) {
+          new FunctionSerializer(function).writeTo(jsonWriter, getNewReplicationSpec());
+        }
+      }
+    } catch (Exception e) {
+      throw new SemanticException(e);
+    }
+    return functionsRoot;
   }
 
   /**
