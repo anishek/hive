@@ -22,6 +22,7 @@ import org.apache.hadoop.hive.metastore.messaging.MessageFactory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,12 +45,14 @@ public class EventHandlerFactory {
   static void register(String event, Class<? extends EventHandler> handlerClazz) {
     try {
       Constructor<? extends EventHandler> constructor =
-          handlerClazz.getConstructor(NotificationEvent.class);
+          handlerClazz.getDeclaredConstructor(NotificationEvent.class);
       assert constructor != null;
-      assert constructor.isAccessible();
+      assert !Modifier.isPrivate(constructor.getModifiers());
       registeredHandlers.put(event, handlerClazz);
     } catch (NoSuchMethodException e) {
-      e.printStackTrace();
+      throw new IllegalArgumentException("handler class: " + handlerClazz.getCanonicalName()
+          + " does not have the a constructor with only parameter of type:"
+          + NotificationEvent.class.getCanonicalName(), e);
     }
   }
 
@@ -58,7 +61,7 @@ public class EventHandlerFactory {
       Class<? extends EventHandler> handlerClazz = registeredHandlers.get(event.getEventType());
       try {
         Constructor<? extends EventHandler> constructor =
-            handlerClazz.getConstructor(NotificationEvent.class);
+            handlerClazz.getDeclaredConstructor(NotificationEvent.class);
         return constructor.newInstance(event);
       } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
         // this should never happen. however we want to make sure we propagate the exception
@@ -66,7 +69,6 @@ public class EventHandlerFactory {
             "failed when creating handler for " + event.getEventType()
                 + " with the responsible class being " + handlerClazz.getCanonicalName(), e);
       }
-
     }
     return new DefaultHandler(event);
   }
