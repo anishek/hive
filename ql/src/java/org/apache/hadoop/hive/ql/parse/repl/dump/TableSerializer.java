@@ -18,9 +18,9 @@
 package org.apache.hadoop.hive.ql.parse.repl.dump;
 
 import org.apache.hadoop.hive.metastore.TableType;
+import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.metadata.Partition;
-import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.parse.ReplicationSpec;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.thrift.TException;
@@ -34,7 +34,8 @@ public class TableSerializer implements JsonWriter.Serializer {
   private final org.apache.hadoop.hive.ql.metadata.Table tableHandle;
   private final Iterable<Partition> partitions;
 
-  public TableSerializer(Table tableHandle, Iterable<Partition> partitions) {
+  public TableSerializer(org.apache.hadoop.hive.ql.metadata.Table tableHandle,
+      Iterable<Partition> partitions) {
     this.tableHandle = tableHandle;
     this.partitions = partitions;
   }
@@ -42,11 +43,16 @@ public class TableSerializer implements JsonWriter.Serializer {
   @Override
   public void writeTo(JsonWriter writer, ReplicationSpec additionalPropertiesProvider)
       throws SemanticException, IOException {
-    TSerializer serializer = new TSerializer(new TJSONProtocol.Factory());
-    addProperties(writer, additionalPropertiesProvider);
+    if (cannotReplicateTable(additionalPropertiesProvider)) {
+      return;
+    }
+
+    Table tTable = tableHandle.getTTable();
+    tTable = addPropertiesToTable(tTable, additionalPropertiesProvider);
     try {
+      TSerializer serializer = new TSerializer(new TJSONProtocol.Factory());
       writer.jsonGenerator
-          .writeStringField("table", serializer.toString(tableHandle.getTTable(), "UTF-8"));
+          .writeStringField("table", serializer.toString(tTable, "UTF-8"));
       writer.jsonGenerator.writeFieldName("partitions");
       writePartitions(writer, additionalPropertiesProvider);
     } catch (TException e) {
@@ -54,24 +60,24 @@ public class TableSerializer implements JsonWriter.Serializer {
     }
   }
 
-  private void addProperties(JsonWriter writer, ReplicationSpec additionalPropertiesProvider)
+  private boolean cannotReplicateTable(ReplicationSpec additionalPropertiesProvider) {
+    return tableHandle == null || additionalPropertiesProvider.isNoop();
+  }
+
+  private Table addPropertiesToTable(Table table, ReplicationSpec additionalPropertiesProvider)
       throws SemanticException, IOException {
     if (additionalPropertiesProvider.isInReplicationScope()) {
-      new ReplicationSpecSerializer().writeTo(writer, additionalPropertiesProvider);
-      if (tableHandle != null) {
-        org.apache.hadoop.hive.metastore.api.Table table = tableHandle.getTTable();
-        table.putToParameters(
+      table.putToParameters(
             ReplicationSpec.KEY.CURR_STATE_ID.toString(),
             additionalPropertiesProvider.getCurrentReplicationState());
-        if (isExternalTable(table)) {
+      if (isExternalTable(table)) {
           // Replication destination will not be external - override if set
-          table.putToParameters("EXTERNAL", "FALSE");
+        table.putToParameters("EXTERNAL", "FALSE");
         }
-        if (isExternalTableType(table)) {
+      if (isExternalTableType(table)) {
           // Replication dest will not be external - override if set
-          table.setTableType(TableType.MANAGED_TABLE.toString());
+        table.setTableType(TableType.MANAGED_TABLE.toString());
         }
-      }
     } else {
       // ReplicationSpec.KEY scopeKey = ReplicationSpec.KEY.REPL_SCOPE;
       // write(out, ",\""+ scopeKey.toString() +"\":\"" + replicationSpec.get(scopeKey) + "\"");
@@ -79,6 +85,7 @@ public class TableSerializer implements JsonWriter.Serializer {
       // uncomment this else section, but currently unnneeded. Will require a lot of golden file
       // regen if we do so.
     }
+    return table;
   }
 
   private boolean isExternalTableType(org.apache.hadoop.hive.metastore.api.Table table) {

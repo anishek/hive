@@ -37,6 +37,7 @@ import org.apache.hadoop.hive.ql.hooks.WriteEntity;
 import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.parse.repl.dump.DBSerializer;
 import org.apache.hadoop.hive.ql.parse.repl.dump.JsonWriter;
+import org.apache.hadoop.hive.ql.parse.repl.dump.ReplicationSpecSerializer;
 import org.apache.hadoop.hive.ql.parse.repl.dump.TableSerializer;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
@@ -262,6 +263,9 @@ public class EximUtil {
     }
 
     try (JsonWriter writer = new JsonWriter(fs, metadataPath)) {
+      if (replicationSpec.isInReplicationScope()) {
+        new ReplicationSpecSerializer().writeTo(writer, replicationSpec);
+      }
       new TableSerializer(tableHandle, partitions).writeTo(writer, replicationSpec);
     }
   }
