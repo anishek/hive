@@ -68,6 +68,8 @@ import org.apache.hadoop.hive.ql.plan.RenamePartitionDesc;
 import org.apache.hadoop.hive.serde2.typeinfo.PrimitiveTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
@@ -489,6 +491,7 @@ public class ReplicationSemanticAnalyzer extends BaseSemanticAnalyzer {
 
   private static final String FUNCTIONS_ROOT_DIR_NAME = "_functions";
   private static final String FUNCTION_METADATA_DIR_NAME = "_metadata";
+  private final static Logger SESSION_STATE_LOG = LoggerFactory.getLogger("SessionState");
 
   private void dumpFunctionMetadata(String dbName, Path dumpRoot) throws SemanticException {
     Path functionsRoot = new Path(new Path(dumpRoot, dbName), FUNCTIONS_ROOT_DIR_NAME);
@@ -499,7 +502,7 @@ public class ReplicationSemanticAnalyzer extends BaseSemanticAnalyzer {
         org.apache.hadoop.hive.metastore.api.Function function =
             db.getFunction(dbName, functionName);
         if (function.getResourceUris().isEmpty()) {
-          LOG.warn(
+          SESSION_STATE_LOG.warn(
               "Not replicating function: " + functionName + " as it seems to have been created "
                   + "without USING clause");
           continue;

@@ -48,8 +48,8 @@ import org.apache.hadoop.hive.ql.plan.PlanUtils;
  *
  */
 public class FunctionSemanticAnalyzer extends BaseSemanticAnalyzer {
-  private static final Logger LOG = LoggerFactory
-      .getLogger(FunctionSemanticAnalyzer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(FunctionSemanticAnalyzer.class);
+  private static final Logger SESISON_STATE_LOG= LoggerFactory.getLogger("SessionState");
 
   public FunctionSemanticAnalyzer(QueryState queryState) throws SemanticException {
     super(queryState);
@@ -81,8 +81,8 @@ public class FunctionSemanticAnalyzer extends BaseSemanticAnalyzer {
 
     // find any referenced resources
     List<ResourceUri> resources = getResourceList(ast);
-    if(!isTemporaryFunction && resources == null){
-      LOG.warn("permanent functions created without USING  clause will not be replicated.");
+    if (!isTemporaryFunction && resources == null) {
+      SESISON_STATE_LOG.warn("permanent functions created without USING  clause will not be replicated.");
     }
 
     CreateFunctionDesc desc =
