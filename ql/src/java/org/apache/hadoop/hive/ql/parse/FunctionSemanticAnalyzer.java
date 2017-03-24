@@ -20,6 +20,7 @@ package org.apache.hadoop.hive.ql.parse;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.parquet.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -80,6 +81,9 @@ public class FunctionSemanticAnalyzer extends BaseSemanticAnalyzer {
 
     // find any referenced resources
     List<ResourceUri> resources = getResourceList(ast);
+    if(!isTemporaryFunction && resources.isEmpty()){
+      LOG.warn("permanent functions created without USING  clause will not be replicated.");
+    }
 
     CreateFunctionDesc desc =
         new CreateFunctionDesc(functionName, isTemporaryFunction, className, resources);
