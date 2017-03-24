@@ -81,7 +81,7 @@ public class FunctionSemanticAnalyzer extends BaseSemanticAnalyzer {
 
     // find any referenced resources
     List<ResourceUri> resources = getResourceList(ast);
-    if(!isTemporaryFunction && resources.isEmpty()){
+    if(!isTemporaryFunction && resources == null){
       LOG.warn("permanent functions created without USING  clause will not be replicated.");
     }
 
