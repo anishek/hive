@@ -20,6 +20,7 @@ package org.apache.hadoop.hive.ql.parse.repl.events;
 import org.apache.hadoop.hive.metastore.api.NotificationEvent;
 
 import static org.apache.hadoop.hive.ql.parse.ReplicationSemanticAnalyzer.DUMPTYPE;
+import static org.apache.hadoop.hive.ql.parse.ReplicationSemanticAnalyzer.DumpMetaData;
 
 public class DropPartitionHandler extends AbstractHandler {
 
@@ -30,7 +31,9 @@ public class DropPartitionHandler extends AbstractHandler {
   @Override
   public void handle(Context withinContext) throws Exception {
     LOG.info("Processing#{} DROP_PARTITION message : {}", fromEventId(), event.getMessage());
-    withinContext.createDmd(this).write();
+    DumpMetaData dmd = withinContext.createDmd(this);
+    dmd.setPayload(event.getMessage());
+    dmd.write();
   }
 
   @Override

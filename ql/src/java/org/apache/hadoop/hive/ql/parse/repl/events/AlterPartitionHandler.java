@@ -32,7 +32,6 @@ import static org.apache.hadoop.hive.ql.parse.ReplicationSemanticAnalyzer.DUMPTY
 import static org.apache.hadoop.hive.ql.parse.ReplicationSemanticAnalyzer.DumpMetaData;
 
 public class AlterPartitionHandler extends AbstractHandler {
-  private final org.apache.hadoop.hive.metastore.api.Partition before;
   private final org.apache.hadoop.hive.metastore.api.Partition after;
   private final org.apache.hadoop.hive.metastore.api.Table tableObject;
   private final Scenario scenario;
@@ -41,7 +40,7 @@ public class AlterPartitionHandler extends AbstractHandler {
     super(event);
     AlterPartitionMessage apm = deserializer.getAlterPartitionMessage(event.getMessage());
     tableObject = apm.getTableObj();
-    before = apm.getPtnObjBefore();
+    org.apache.hadoop.hive.metastore.api.Partition before = apm.getPtnObjBefore();
     after = apm.getPtnObjAfter();
     scenario = scenarioType(before, after);
   }
@@ -67,7 +66,7 @@ public class AlterPartitionHandler extends AbstractHandler {
       org.apache.hadoop.hive.metastore.api.Partition after) {
     Iterator<String> beforeValIter = before.getValuesIterator();
     Iterator<String> afterValIter = after.getValuesIterator();
-    for (; beforeValIter.hasNext(); ) {
+    while(beforeValIter.hasNext()) {
       if (!beforeValIter.next().equals(afterValIter.next())) {
         return Scenario.RENAME;
       }
