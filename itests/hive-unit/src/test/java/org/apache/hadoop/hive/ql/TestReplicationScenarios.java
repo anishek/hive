@@ -1188,12 +1188,6 @@ public class TestReplicationScenarios {
     assertFalse(EventUtils.andFilter(no, no, no).accept(dummyEvent));
   }
 
-  @Test
-  public void testCreateFunctions() {
-
-  }
-
-
   private NotificationEvent createDummyEvent(String dbname, String tblname, long evid) {
     MessageFactory msgFactory = MessageFactory.getInstance();
     Table t = new Table();
