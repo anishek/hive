@@ -1237,7 +1237,7 @@ public class TestReplicationScenarios {
     run("REPL LOAD " + dbName + "_dupe." + tblName + " FROM '" + lastDumpLocn + "'");
     verifyRun("REPL STATUS " + dbName + "_dupe", lastDbReplDumpId);
     verifyRun("REPL STATUS " + dbName + "_dupe." + tblName, lastReplDumpId);
-    assertTrue(lastReplDumpId.compareTo(prevReplDumpId) > 0);
+    assertTrue(Long.parseLong(lastReplDumpId) > Long.parseLong(prevReplDumpId));
     return lastReplDumpId;
   }
 
