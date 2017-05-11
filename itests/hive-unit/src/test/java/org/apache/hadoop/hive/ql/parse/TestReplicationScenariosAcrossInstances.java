@@ -59,7 +59,7 @@ public class TestReplicationScenariosAcrossInstances {
   }
 
   @Test
-  public void testIncrementalFunctionReplication() throws Throwable {
+  public void testCreateFunctionIncrementalReplication() throws Throwable {
     WarehouseInstance.Tuple bootStrapDump = primary.dump(primaryDbName, null);
     replica.load(replicatedDbName, bootStrapDump.dumpLocation)
         .run("REPL STATUS " + replicatedDbName)
@@ -75,6 +75,26 @@ public class TestReplicationScenariosAcrossInstances {
         .verify(incrementalDump.lastReplicationId)
         .run("SHOW FUNCTIONS LIKE '" + replicatedDbName + "*'")
         .verify(replicatedDbName + ".testFunction");
+  }
+
+  @Test
+  public void testDropFunctionIncrementalReplication() throws Throwable {
+    primary.run("CREATE FUNCTION " + primaryDbName
+        + ".testFunction as 'com.yahoo.sketches.hive.theta.DataToSketchUDAF' "
+        + "using jar  'ivy://com.yahoo.datasketches:sketches-hive:0.8.2'");
+    WarehouseInstance.Tuple bootStrapDump = primary.dump(primaryDbName, null);
+    replica.load(replicatedDbName, bootStrapDump.dumpLocation)
+        .run("REPL STATUS " + replicatedDbName)
+        .verify(bootStrapDump.lastReplicationId);
+
+    primary.run("Drop FUNCTION " + primaryDbName + ".testFunction ");
+
+    WarehouseInstance.Tuple incrementalDump = primary.dump(primaryDbName, bootStrapDump.lastReplicationId);
+    replica.load(replicatedDbName, incrementalDump.dumpLocation)
+        .run("REPL STATUS " + replicatedDbName)
+        .verify(incrementalDump.lastReplicationId)
+        .run("SHOW FUNCTIONS LIKE '*testfunction*'")
+        .verify(null);
   }
 
   @Test
