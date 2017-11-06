@@ -24,6 +24,10 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * The dag traversal done here is written to be not recursion based as large DAG's will lead to
+ * stack overflow's, hence iteration based.
+ */
 public class DAGTraversal {
   public static void traverse(List<Task<? extends Serializable>> tasks, Function function) {
     List<Task<? extends Serializable>> listOfTasks = new ArrayList<>(tasks);
