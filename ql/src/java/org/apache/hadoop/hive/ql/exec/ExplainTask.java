@@ -217,11 +217,12 @@ public class ExplainTask extends Task<ExplainWork> implements Serializable {
   public JSONObject getJSONPlan(PrintStream out, ExplainWork work)
       throws Exception {
     return getJSONPlan(out, work.getRootTasks(), work.getFetchTask(),
-                       work.isFormatted(), work.getExtended(), work.isAppendTaskType());
+        work.isFormatted(), work.getExtended(), work.isAppendTaskType(), work.getCboInfo());
   }
 
   public JSONObject getJSONPlan(PrintStream out, List<Task<?>> tasks, Task<?> fetchTask,
-      boolean jsonOutput, boolean isExtended, boolean appendTaskType) throws Exception {
+      boolean jsonOutput, boolean isExtended, boolean appendTaskType, String cboInfo)
+      throws Exception {
 
     // If the user asked for a formatted output, dump the json output
     // in the output stream
@@ -267,6 +268,9 @@ public class ExplainTask extends Task<ExplainWork> implements Serializable {
       }
 
       if (jsonOutput) {
+        if (cboInfo != null) {
+          outJSONObject.put("cboInfo", cboInfo);
+        }
         outJSONObject.put("STAGE DEPENDENCIES", jsonDependencies);
       }
 
